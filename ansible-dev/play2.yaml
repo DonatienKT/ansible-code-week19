@@ -1,0 +1,39 @@
+---
+- hosts: ws
+  become: yes
+  gather_facts: 1
+  ignore_errors: True
+  vars:
+    user_name: donaskt
+    group: terraform 
+  vars_files:
+    - variables.yml 
+  tasks:
+    - name: check server time
+      command: "{{my_command}}"
+        #ignore_errors: 1
+      register: uptime
+    - name: list all
+      shell: ls
+    - name: check kernel version
+      command: uname -r
+      register: kernel_output 
+    - name: free memory
+      command: free -m
+      register: free
+    - name: create user
+      user:
+        name: "{{user_name}}"
+    - name: create group
+      group:
+        name: "{{group}}"
+    - name: Read data 
+      debug:
+        var: kernel_output.stdout
+    - name: read data 2
+      debug:  
+        var: uptime.stdout[1:18]
+    - name: read data 3
+      debug:
+        var: free.stdout
+

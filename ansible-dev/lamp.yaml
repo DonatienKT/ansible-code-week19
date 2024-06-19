@@ -1,0 +1,96 @@
+---
+- name: Setting up LAMP Website
+  hosts: ds
+  become: yes
+  vars:
+    ansible_hostname: 0.0.0.0
+  tasks:
+    - name: Update package repositories for Debian/Ubuntu
+      apt:
+        update_cache: yes
+      when: "ansible_os_family == 'Debian' or ansible_os_family == 'Ubuntu'"
+
+    - name: Update package repositories for Amazon Linux
+      yum:
+        name: '*'
+        state: latest
+      when: "ansible_os_family == 'RedHat' or ansible_os_family == 'Amazon'"
+
+    - name: Determine package name for MariaDB on Debian/Ubuntu
+      set_fact:
+        mariadb_package_name: "{{ 'mariadb-server' if ansible_distribution == 'Debian' else 'mysql-server' }}"
+      when: "ansible_os_family == 'Debian' or ansible_os_family == 'Ubuntu'"
+    - name: Install required packages for Debian/Ubuntu
+      apt:
+        name:
+          - apache2
+          - "{{ mariadb_package_name }}"
+          - php
+          - libapache2-mod-php
+          - php-mysql
+        state: present
+      when: "ansible_os_family == 'Debian' or ansible_os_family == 'Ubuntu'"
+ 
+    - name: Install required packages for Amazon Linux
+      yum:
+        name:
+          - httpd
+          - mariadb-server
+          - php
+          - php-mysql
+        state: present
+      when: "ansible_os_family == 'RedHat' or ansible_os_family == 'Amazon'"
+
+    - name: Ensure firewalld is installed and enabled (for Amazon Linux)
+      package:
+        name: firewalld
+        state: present
+      when: "ansible_os_family == 'RedHat' or ansible_os_family == 'Amazon'"
+
+    - name: Start and enable firewalld (for Amazon Linux)
+      service:
+        name: firewalld
+        enabled: yes
+        state: started
+      when: "ansible_os_family == 'RedHat' or ansible_os_family == 'Amazon'"
+
+    - name: Allow HTTP traffic in firewalld (for Amazon Linux)
+      firewalld:
+        service: http
+        permanent: yes
+        state: enabled
+      when: "ansible_os_family == 'RedHat' or ansible_os_family == 'Amazon'"
+
+    - name: Copy mime.types file (for Amazon Linux)
+      copy:
+        src: /etc/mime.types
+        dest: /etc/httpd/conf/mime.types
+        remote_src: yes
+      when: "ansible_os_family == 'RedHat' or ansible_os_family == 'Amazon'"
+
+    - name: Start and enable Apache for Debian/Ubuntu
+      service:
+        name: apache2
+        enabled: yes
+        state: started
+      when: "ansible_os_family == 'Debian' or ansible_os_family == 'Ubuntu'"
+
+    - name: Start and enable Apache for Amazon Linux
+      service:
+        name: httpd
+        enabled: yes
+        state: started
+      when: "ansible_os_family == 'RedHat' or ansible_os_family == 'Amazon'"
+ 
+    - name: Start and enable MariaDB for Amazon Linux
+      service:
+        name: mariadb
+        enabled: yes
+        state: started
+      when: "ansible_os_family == 'RedHat' or ansible_os_family == 'Amazon'"
+
+    - name: Download PHP page
+      get_url:
+        url: "https://www.freecodecamp.org/news/the-best-php-examples/"
+        dest: /var/www/html
+        mode: 0755

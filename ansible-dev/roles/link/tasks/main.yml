@@ -1,0 +1,7 @@
+---
+- name: download package from url
+  win_get_url:
+    url: "{{url}}"
+    dest: "{{dest_path}}"
+
+# tasks file for link
